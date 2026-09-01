@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ExerciseType {
+  STRENGTH
+  CARDIO
+}
+
+model Exercise {
+  id              String       @id @default(cuid())
+  name            String
+  type            ExerciseType
+  muscleGroup     String
+  youtubeVideoId  String
+  routineDayItems RoutineDayItem[]
+  setLogs         SetLog[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("exercises")
+}
+
+model RoutineDay {
+  id               String   @id @default(cuid())
+  name             String
+  sequencePosition Int
+  items            RoutineDayItem[]
+  sessions         WorkoutSession[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("routine_days")
+}
+
+model RoutineDayItem {
+  id                    String     @id @default(cuid())
+  routineDayId          String
+  exerciseId            String
+  order                 Int
+  plannedSets           Int?
+  plannedReps           Int?
+  plannedWeightKg       Float?
+  plannedDurationMin    Float?
+  plannedDistanceKm     Float?
+  plannedInclinePct     Float?
+  plannedSpeedKmh       Float?
+  routineDay            RoutineDay @relation(fields: [routineDayId], references: [id], onDelete: Cascade)
+  exercise              Exercise   @relation(fields: [exerciseId], references: [id])
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  @@map("routine_day_items")
+}
+
+model WorkoutSession {
+  id            String     @id @default(cuid())
+  routineDayId  String
+  startedAt     DateTime   @default(now())
+  endedAt       DateTime?
+  routineDay    RoutineDay @relation(fields: [routineDayId], references: [id])
+  setLogs       SetLog[]
+
+  @@map("workout_sessions")
+}
+
+model SetLog {
+  id                 String         @id @default(cuid())
+  workoutSessionId   String
+  exerciseId         String
+  setNumber          Int?
+  actualWeightKg     Float?
+  actualReps         Int?
+  actualDurationMin  Float?
+  actualDistanceKm   Float?
+  actualInclinePct   Float?
+  actualSpeedKmh     Float?
+  actualCalories     Float?
+  actualAvgHeartRate Int?
+  note               String?
+  loggedAt           DateTime       @default(now())
+  workoutSession     WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exercise           Exercise       @relation(fields: [exerciseId], references: [id])
+
+  @@map("set_logs")
+}
+
+model BCAEntry {
+  id                       String   @id @default(cuid())
+  entryDate                DateTime
+  height                   Float
+  weight                   Float
+  bodyFatPct               Float
+  visceralFat              Float
+  restingMetabolism        Float
+  bmi                      Float
+  bodyAge                  Int
+  subcutaneousFatTotal     Float
+  subcutaneousFatTrunk     Float
+  subcutaneousFatArm       Float
+  subcutaneousFatLeg       Float
+  skeletalMuscleTotal      Float
+  skeletalMuscleTrunk      Float
+  skeletalMuscleArm        Float
+  skeletalMuscleLeg        Float
+  createdAt                DateTime @default(now())
+
+  @@map("bca_entries")
+}
