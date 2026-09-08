@@ -1,41 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const search = searchParams.get("search");
+export async function GET() {
+  try {
+    const exercises = await prisma.exercise.findMany({
+      orderBy: { name: "asc" },
+    });
 
-  const exercises = await prisma.exercise.findMany({
-    where: search
-      ? { name: { contains: search, mode: "insensitive" } }
-      : undefined,
-    orderBy: { name: "asc" },
-  });
-
-  return NextResponse.json(exercises);
+    return NextResponse.json(exercises);
+  } catch (error) {
+    console.error("GET /api/exercises failed:", error);
+    return NextResponse.json(
+      { error: "Failed to load exercises" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { name, type, muscleGroup, youtubeVideoId } = body;
+  try {
+    const body = await request.json();
 
-  if (!name || !type || !muscleGroup || !youtubeVideoId) {
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const muscleGroup =
+      typeof body?.muscleGroup === "string" ? body.muscleGroup.trim() : "";
+    const youtubeVideoId =
+      typeof body?.youtubeVideoId === "string"
+        ? body.youtubeVideoId.trim()
+        : "";
+    const type = body?.type;
+
+    if (!name || !muscleGroup || !["STRENGTH", "CARDIO"].includes(type)) {
+      return NextResponse.json(
+        {
+          error:
+            "Exercise name, a valid type (STRENGTH or CARDIO), and muscle group are required.",
+        },
+        { status: 400 },
+      );
+    }
+
+    const exercise = await prisma.exercise.create({
+      data: {
+        name,
+        type,
+        muscleGroup,
+        youtubeVideoId,
+      },
+    });
+
+    return NextResponse.json(exercise, { status: 201 });
+  } catch (error) {
+    console.error("POST /api/exercises failed:", error);
+
     return NextResponse.json(
-      { error: "name, type, muscleGroup, and youtubeVideoId are required" },
-      { status: 400 }
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create exercise.",
+      },
+      { status: 500 },
     );
   }
-
-  if (type !== "STRENGTH" && type !== "CARDIO") {
-    return NextResponse.json(
-      { error: "type must be STRENGTH or CARDIO" },
-      { status: 400 }
-    );
-  }
-
-  const exercise = await prisma.exercise.create({
-    data: { name, type, muscleGroup, youtubeVideoId },
-  });
-
-  return NextResponse.json(exercise, { status: 201 });
 }

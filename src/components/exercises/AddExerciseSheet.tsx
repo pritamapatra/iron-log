@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Search, Check, Plus } from "lucide-react";
 import Badge from "@/components/Badge";
+import { createPortal } from "react-dom";
 
 interface Exercise {
   id: string;
@@ -93,8 +94,8 @@ export function AddExerciseSheet({ isOpen, onClose, onSelect }: AddExerciseSheet
   }, [handleClose, onSelect, selectedExercises]);
 
 const handleCreateExercise = useCallback(async () => {
-  if (!newName || !newMuscleGroup || !newYoutubeVideoId) {
-    setError("All fields are required.");
+  if (!newName.trim() || !newMuscleGroup.trim()) {
+    setError("Exercise name and muscle group are required.");
     return;
   }
 
@@ -139,8 +140,8 @@ const handleCreateExercise = useCallback(async () => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-[0px] backdrop-blur-[2px]">
-      <div className="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.14)]">
+    <div className="fixed inset-0 z-[2147483646] flex items-end justify-center bg-black/40 px-[0px] backdrop-blur-[2px]">
+      <div className="flex h-[92dvh] max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.14)]">
         <div className="flex flex-col items-center pt-[12px]">
         <div className="h-[5px] w-[40px] rounded-full bg-[#D1D1D6]" />
         <div className="flex w-full items-center justify-between px-[20px] pb-[12px] pt-[12px]">
@@ -222,6 +223,18 @@ const handleCreateExercise = useCallback(async () => {
           ))}
         </div>
 
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setIsCreatingNew(true);
+          }}
+          className="mx-[20px] mb-[10px] flex h-[44px] w-[calc(100%-40px)] items-center justify-center gap-[8px] rounded-full border border-[#5E5CE6]/20 bg-[#5E5CE6]/[0.06] text-[14px] font-semibold text-[#5E5CE6] active:bg-[#5E5CE6]/10"
+        >
+          <Plus size={18} strokeWidth={2.5} />
+          Create custom exercise
+        </button>
+
         <div className="min-h-0 flex-1 overflow-y-auto px-[20px] pb-[16px]">
           {isLoading && (
             <div className="py-6 text-center text-sm text-[#6E6E73]">Loading...</div>
@@ -279,81 +292,128 @@ const handleCreateExercise = useCallback(async () => {
               </button> 
             ))}
         </div>
-        <div className="border-t border-black/[0.04] bg-white px-[20px] pb-[20px] pt-[12px]">
+        <div className="shrink-0 border-t border-black/[0.08] bg-white px-[20px] pb-[calc(12px+env(safe-area-inset-bottom))] pt-[10px]">
           <button
             type="button"
             onClick={confirmSelection}
             disabled={selectedExercises.length === 0}
-            className="flex h-[50px] w-full items-center justify-center gap-[8px] rounded-full bg-[#34C759] px-[16px] text-[16px] font-semibold text-white shadow-[0_4px_12px_rgba(52,199,89,0.28)] transition-opacity disabled:bg-[#E5E5EA] disabled:text-[#6E6E73] disabled:shadow-none"
+            className="flex h-[52px] w-full items-center justify-center gap-[8px] rounded-full bg-[#34C759] px-[16px] text-[16px] font-semibold text-white shadow-[0_4px_12px_rgba(52,199,89,0.28)] transition-opacity active:opacity-85 disabled:bg-[#E5E5EA] disabled:text-[#6E6E73] disabled:shadow-none"
           >
             <Check size={20} strokeWidth={2.5} />
             {selectedExercises.length === 0
               ? "Select exercises"
               : `Add ${selectedExercises.length} exercise${selectedExercises.length === 1 ? "" : "s"}`}
           </button>
-        </div>        <button
-         onClick={() => setIsCreatingNew((prev) => !prev)}
-         className="mx-[20px] mb-[8px] mt-[12px] h-[44px] rounded-full bg-[#F2F2F7] px-[16px] text-center text-sm font-medium text-[#1D1D1F]"
-        >
-        {isCreatingNew ? "Cancel" : "+ Create new exercise"}
-        </button>
-{isCreatingNew && (
-  <div className="mx-[20px] mb-[20px] mt-[4px] flex flex-col gap-[12px] rounded-[16px] bg-[#FAFAFA] p-[16px]">
-    <input
-      type="text"
-      value={newName}
-      onChange={(e) => setNewName(e.target.value)}
-      placeholder="Exercise name"
-      className="h-[44px] rounded-[12px] border border-[#E5E5EA] bg-white px-[12px] text-base text-[#1D1D1F] outline-none placeholder:text-[#6E6E73] focus:border-[#1D1D1F]"
-    />
+        </div>
+{isCreatingNew &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[2147483647] flex items-end bg-black/50"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Create custom exercise"
+          >
+            <div className="flex max-h-[100dvh] w-full flex-col overflow-hidden rounded-t-[28px] bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.25)]">
+              <div className="shrink-0 px-[20px] pb-[12px] pt-[12px]">
+                <div className="mx-auto mb-[12px] h-[5px] w-[40px] rounded-full bg-[#D1D1D6]" />
 
-    <div className="flex gap-2">
-      <button
-        onClick={() => setNewType("STRENGTH")}
-        className={`flex-1 rounded-full border px-4 py-2 text-sm ${
-          newType === "STRENGTH"
-            ? "border-[#5E5CE6] bg-[#5E5CE6]/10 text-[#5E5CE6]"
-            : "border-[#E5E5EA] text-[#6E6E73]"
-        }`}
-      >
-        Strength
-      </button>
-      <button
-        onClick={() => setNewType("CARDIO")}
-        className={`flex-1 rounded-full border px-4 py-2 text-sm ${
-          newType === "CARDIO"
-            ? "border-[#FF453A] bg-[#FF453A]/10 text-[#FF453A]"
-            : "border-[#E5E5EA] text-[#6E6E73]"
-        }`}
-      >
-        Cardio
-      </button>
-    </div>
+                <div className="flex items-start justify-between gap-[16px]">
+                  <div>
+                    <h3 className="text-[20px] font-semibold text-[#1D1D1F]">
+                      Create custom exercise
+                    </h3>
+                    <p className="mt-[4px] text-[13px] text-[#6E6E73]">
+                      Add a custom movement to your library
+                    </p>
+                  </div>
 
-    <input
-      type="text"
-      value={newMuscleGroup}
-      onChange={(e) => setNewMuscleGroup(e.target.value)}
-      placeholder="Muscle group"
-      className="h-[44px] rounded-[12px] border border-[#E5E5EA] bg-white px-[12px] text-base text-[#1D1D1F] outline-none placeholder:text-[#6E6E73] focus:border-[#1D1D1F]"
-    />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingNew(false);
+                      setError(null);
+                    }}
+                    aria-label="Close custom exercise form"
+                    className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-[#F2F2F7] text-[#6E6E73]"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
 
-    <input
-      type="text"
-      value={newYoutubeVideoId}
-      onChange={(e) => setNewYoutubeVideoId(e.target.value)}
-      placeholder="YouTube video ID"
-      className="h-[44px] rounded-[12px] border border-[#E5E5EA] bg-white px-[12px] text-base text-[#1D1D1F] outline-none placeholder:text-[#6E6E73] focus:border-[#1D1D1F]"
-    />
+              <div className="min-h-0 flex-1 overflow-y-auto px-[20px] pb-[16px]">
+                <div className="flex flex-col gap-[12px]">
+                  <input
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Exercise name"
+                    className="h-[48px] w-full rounded-[12px] border border-[#E5E5EA] bg-white px-[12px] text-base text-[#1D1D1F] outline-none placeholder:text-[#6E6E73] focus:border-[#1D1D1F]"
+                  />
 
-    <button
-  onClick={handleCreateExercise}
-  className="h-[48px] rounded-full bg-[#34C759] px-[16px] text-center text-sm font-semibold text-white shadow-[0_4px_12px_rgba(52,199,89,0.28)] transition-opacity active:opacity-85"
->
-  Save Exercise
-</button>
-  </div>
-    )}
+                  <div className="grid grid-cols-2 gap-[8px]">
+                    <button
+                      type="button"
+                      onClick={() => setNewType("STRENGTH")}
+                      className={`h-[44px] rounded-full border text-sm font-medium ${
+                        newType === "STRENGTH"
+                          ? "border-[#5E5CE6] bg-[#5E5CE6]/10 text-[#5E5CE6]"
+                          : "border-[#E5E5EA] text-[#6E6E73]"
+                      }`}
+                    >
+                      Strength
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNewType("CARDIO")}
+                      className={`h-[44px] rounded-full border text-sm font-medium ${
+                        newType === "CARDIO"
+                          ? "border-[#FF453A] bg-[#FF453A]/10 text-[#FF453A]"
+                          : "border-[#E5E5EA] text-[#6E6E73]"
+                      }`}
+                    >
+                      Cardio
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    value={newMuscleGroup}
+                    onChange={(e) => setNewMuscleGroup(e.target.value)}
+                    placeholder="Muscle group"
+                    className="h-[48px] w-full rounded-[12px] border border-[#E5E5EA] bg-white px-[12px] text-base text-[#1D1D1F] outline-none placeholder:text-[#6E6E73] focus:border-[#1D1D1F]"
+                  />
+
+                  <input
+                    type="text"
+                    value={newYoutubeVideoId}
+                    onChange={(e) => setNewYoutubeVideoId(e.target.value)}
+                    placeholder="YouTube video ID (optional)"
+                    className="h-[48px] w-full rounded-[12px] border border-[#E5E5EA] bg-white px-[12px] text-base text-[#1D1D1F] outline-none placeholder:text-[#6E6E73] focus:border-[#1D1D1F]"
+                  />
+
+                  {error && (
+                    <p className="text-[13px] font-medium text-[#FF453A]">{error}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="shrink-0 border-t border-black/[0.06] bg-white px-[20px] pb-[calc(20px+env(safe-area-inset-bottom))] pt-[12px]">
+                <button
+                  type="button"
+                  onClick={handleCreateExercise}
+                  className="flex h-[52px] w-full items-center justify-center gap-[8px] rounded-full bg-[#34C759] px-[16px] text-[16px] font-semibold text-white shadow-[0_4px_12px_rgba(52,199,89,0.28)] transition-opacity active:opacity-85"
+                >
+                  <Plus size={20} strokeWidth={2.5} />
+                  Create Exercise
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     </div>
   );
