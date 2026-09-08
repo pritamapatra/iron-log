@@ -8,19 +8,113 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+.tabular-nums-fixed {
+  font-variant-numeric: tabular-nums;
+}
+
+@theme {
+  --color-background: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-container-low: #F4F3F8;
+  --color-surface-container-high: #E9E7ED;
+  --color-text-primary: #1D1D1F;
+  --color-text-secondary: #6E6E73;
+  --color-accent-action: #34C759;
+  --color-accent-alert: #FF9F0A;
+  --color-divider: #E5E5EA;
+  --color-tag-strength: #5E5CE6;
+  --color-tag-cardio: #FF453A;
+  --color-secondary: #006E28;
+  --color-primary-container: #1D1D1F;
+}
+
+@theme {
+  --text-page-title: 28px;
+  --text-section-header: 20px;
+  --text-body: 16px;
+  --text-label: 13px;
+
+  --text-headline-lg: 28px;
+  --text-headline-lg--line-height: 34px;
+  --text-headline-lg--letter-spacing: -0.015em;
+  --text-headline-lg--font-weight: 700;
+
+  --text-headline-md: 20px;
+  --text-headline-md--line-height: 25px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 600;
+
+  --text-headline-sm: 17px;
+  --text-headline-sm--line-height: 22px;
+  --text-headline-sm--letter-spacing: -0.005em;
+  --text-headline-sm--font-weight: 600;
+
+  --text-body-regular: 16px;
+  --text-body-regular--line-height: 22px;
+  --text-body-regular--font-weight: 400;
+
+  --text-body-medium: 16px;
+  --text-body-medium--line-height: 22px;
+  --text-body-medium--font-weight: 500;
+
+  --text-label-primary: 13px;
+  --text-label-primary--line-height: 18px;
+  --text-label-primary--font-weight: 400;
+
+  --text-label-caps: 11px;
+  --text-label-caps--line-height: 13px;
+  --text-label-caps--letter-spacing: 0.06em;
+  --text-label-caps--font-weight: 600;
+
+  --text-numeric-timer: 32px;
+  --text-numeric-timer--line-height: 38px;
+  --text-numeric-timer--letter-spacing: -0.02em;
+  --text-numeric-timer--font-weight: 600;
+
+  --text-numeric-data: 16px;
+  --text-numeric-data--line-height: 20px;
+  --text-numeric-data--font-weight: 500;
+
+  --text-numeric-caption: 12px;
+  --text-numeric-caption--line-height: 16px;
+  --text-numeric-caption--font-weight: 500;
+}
+
+@theme {
+  --spacing-8pt-xs: 8px;
+  --spacing-8pt-sm: 16px;
+  --spacing-8pt-md: 24px;
+  --spacing-8pt-lg: 32px;
+
+  --spacing-2: 0.125rem;
+  --spacing-4: 0.25rem;
+  --spacing-8: 0.5rem;
+  --spacing-12: 0.75rem;
+  --spacing-16: 1rem;
+  --spacing-20: 1.25rem;
+  --spacing-24: 1.5rem;
+  --spacing-32: 2rem;
+  --spacing-40: 2.5rem;
+  --spacing-48: 3rem;
+  --spacing-64: 4rem;
+}
+
+@theme {
+  --radius-card: 0.75rem;
+  --radius-control: 0.625rem;
+  --radius-pill: 9999px;
+
+  --shadow-level-1: 0 2px 8px -2px rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+  --shadow-level-2: 0 8px 24px -4px rgba(0, 0, 0, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  --shadow-level-3: 0 16px 36px -6px rgba(0, 0, 0, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.06);
 }

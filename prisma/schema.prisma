@@ -57,6 +57,7 @@ model RoutineDayItem {
   plannedSpeedKmh       Float?
   routineDay            RoutineDay @relation(fields: [routineDayId], references: [id], onDelete: Cascade)
   exercise              Exercise   @relation(fields: [exerciseId], references: [id])
+  setLogs           SetLog[]
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
@@ -77,6 +78,7 @@ model WorkoutSession {
 model SetLog {
   id                 String         @id @default(cuid())
   workoutSessionId   String
+  routineDayItemId   String?
   exerciseId         String
   setNumber          Int?
   actualWeightKg     Float?
@@ -90,6 +92,7 @@ model SetLog {
   note               String?
   loggedAt           DateTime       @default(now())
   workoutSession     WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  routineDayItem     RoutineDayItem? @relation(fields: [routineDayItemId], references: [id], onDelete: SetNull)
   exercise           Exercise       @relation(fields: [exerciseId], references: [id])
 
   @@map("set_logs")

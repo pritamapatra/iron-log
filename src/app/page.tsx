@@ -1,69 +1,144 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import BottomNav from "@/components/BottomNav";
+import { StreakBadge } from "@/components/dashboard/StreakBadge";
+import { TodayRoutineCard } from "@/components/dashboard/TodayRoutineCard";
+import { AllRoutinesList } from "@/components/dashboard/AllRoutinesList";
+import { NewDayButton } from "@/components/dashboard/NewDayButton";
+
+interface TodayRoutine {
+  id: string;
+  name: string;
+  items: {
+    id: string;
+    exercise: {
+      name: string;
+      type: "STRENGTH" | "CARDIO";
+    };
+  }[];
+}
+
+interface Streak {
+  currentStreak: number;
+  longestStreak: number;
+  weekDots: boolean[];
+  trendPercent: number | null;
+}
+
+interface RoutineDaySummary {
+  id: string;
+  name: string;
+  itemCount: number;
+  primaryType: "STRENGTH" | "CARDIO" | null;
+}
+
+export default function DashboardPage() {
+  const [today, setToday] = useState<TodayRoutine | null>(null);
+  const [hasNoRoutineDays, setHasNoRoutineDays] = useState(false);
+  const [streak, setStreak] = useState<Streak>({
+  currentStreak: 0,
+  longestStreak: 0,
+  weekDots: [false, false, false, false, false, false, false],
+  trendPercent: null,
+});
+  const [routineDays, setRoutineDays] = useState<RoutineDaySummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadDashboard() {
+      try {
+        const [todayRes, streakRes, routineDaysRes] = await Promise.all([
+          fetch("/api/dashboard/today"),
+          fetch("/api/streak", { cache: "no-store" }),
+          fetch("/api/routine-days"),
+        ]);
+
+        if (isCancelled) return;
+
+        if (todayRes.status === 404) {
+          setHasNoRoutineDays(true);
+        } else if (todayRes.ok) {
+          const todayData = await todayRes.json();
+          setToday(todayData);
+        } else {
+          throw new Error("Failed to load today's routine");
+        }
+
+        if (!streakRes.ok) throw new Error("Failed to load streak");
+        const streakData: Streak = await streakRes.json();
+        if (!isCancelled) setStreak(streakData);
+
+        if (!routineDaysRes.ok) throw new Error("Failed to load routine days");
+        const routineDaysData: RoutineDaySummary[] = await routineDaysRes.json();
+        if (!isCancelled) setRoutineDays(routineDaysData);
+      } catch (err) {
+        if (!isCancelled) {
+          setError(err instanceof Error ? err.message : "Something went wrong");
+        }
+      } finally {
+        if (!isCancelled) setIsLoading(false);
+      }
+    }
+
+    loadDashboard();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return <div className="p-4 text-sm text-[#6E6E73]">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="p-4 text-sm text-[#FF453A]">{error}</div>;
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen bg-[#FAFAFA] pb-24">
+      <div className="flex flex-col gap-[20px] px-[16px] pb-[160px] pt-[12px]">
+  <div className="flex items-baseline justify-between pb-[4px]">
+    <div>
+      <h1 className="text-headline-lg font-bold tracking-tight text-text-primary">
+        Iron Log
+      </h1>
+      <p className="mt-[2px] text-label-primary text-text-secondary">
+        High-focus biometric tracking
+      </p>
+    </div>
+
+    <span className="inline-flex items-center gap-[4px] rounded-full bg-surface-container-high px-[8px] py-[4px] text-label-caps font-semibold tracking-[0.06em] text-text-secondary">
+      <span className="h-[6px] w-[6px] rounded-full bg-accent-action" />
+      SYNCED
+    </span>
+  </div>
+
+        <StreakBadge data={streak} />
+
+        {hasNoRoutineDays ? (
+          <p className="text-sm text-[#6E6E73]">
+            No routine days yet. Create your first one below.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+        ) : (
+          today && (
+            <TodayRoutineCard
+  routineDayId={today.id}
+  routineDayName={today.name}
+  items={today.items}
+/>
+          )
+        )}
+
+        <AllRoutinesList routineDays={routineDays} activeRoutineDayId={today?.id} />
+      </div>
+
+      <NewDayButton />
+      <BottomNav />
     </div>
   );
 }
