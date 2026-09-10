@@ -3,17 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const {
-    routineDayId,
-    exerciseId,
-    plannedSets,
-    plannedReps,
-    plannedWeightKg,
-    plannedDurationMin,
-    plannedDistanceKm,
-    plannedInclinePct,
-    plannedSpeedKmh,
-  } = body;
+  const { routineDayId, exerciseId } = body;
 
   if (!routineDayId || !exerciseId) {
     return NextResponse.json(
@@ -56,13 +46,6 @@ export async function POST(request: NextRequest) {
       routineDayId,
       exerciseId,
       order: nextOrder,
-      plannedSets: plannedSets ?? null,
-      plannedReps: plannedReps ?? null,
-      plannedWeightKg: plannedWeightKg ?? null,
-      plannedDurationMin: plannedDurationMin ?? null,
-      plannedDistanceKm: plannedDistanceKm ?? null,
-      plannedInclinePct: plannedInclinePct ?? null,
-      plannedSpeedKmh: plannedSpeedKmh ?? null,
     },
     include: {
       exercise: true,

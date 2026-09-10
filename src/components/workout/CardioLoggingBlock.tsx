@@ -7,32 +7,18 @@ import Button from "@/components/Button";
 interface CardioLoggingBlockProps {
   workoutSessionId: string;
   exerciseId: string;
-  plannedDurationMin: number | null;
-  plannedDistanceKm: number | null;
-  plannedInclinePct: number | null;
-  plannedSpeedKmh: number | null;
   onCompleted?: () => void;
 }
 
 export function CardioLoggingBlock({
   workoutSessionId,
   exerciseId,
-  plannedDurationMin,
-  plannedDistanceKm,
-  plannedInclinePct,
-  plannedSpeedKmh,
   onCompleted,
 }: CardioLoggingBlockProps) {
-  const [durationMin, setDurationMin] = useState<number | null>(
-    plannedDurationMin
-  );
-  const [distanceKm, setDistanceKm] = useState<number | null>(
-    plannedDistanceKm
-  );
-  const [inclinePct, setInclinePct] = useState<number | null>(
-    plannedInclinePct
-  );
-  const [speedKmh, setSpeedKmh] = useState<number | null>(plannedSpeedKmh);
+  const [durationMin, setDurationMin] = useState<number | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [inclinePct, setInclinePct] = useState<number | null>(null);
+  const [speedKmh, setSpeedKmh] = useState<number | null>(null);
   const [calories, setCalories] = useState<number | null>(null);
   const [avgHeartRate, setAvgHeartRate] = useState<number | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);

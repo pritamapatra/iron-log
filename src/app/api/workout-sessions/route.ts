@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { routineDayId } = body;
+    const { routineDayId, waterReminderIntervalMinutes } = body;
 
     if (!routineDayId || typeof routineDayId !== "string") {
       return NextResponse.json(
@@ -13,8 +13,30 @@ export async function POST(request: Request) {
       );
     }
 
+    const hasReminderValue =
+      waterReminderIntervalMinutes !== undefined &&
+      waterReminderIntervalMinutes !== null;
+
+    if (
+      hasReminderValue &&
+      (!Number.isInteger(waterReminderIntervalMinutes) ||
+        waterReminderIntervalMinutes <= 0)
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "waterReminderIntervalMinutes must be a positive whole number or null",
+        },
+        { status: 400 }
+      );
+    }
+
     const session = await prisma.workoutSession.create({
-      data: { routineDayId },
+      data: {
+        routineDayId,
+        waterReminderIntervalMinutes:
+          waterReminderIntervalMinutes ?? null,
+      },
     });
 
     return NextResponse.json(session, { status: 201 });

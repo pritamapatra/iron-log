@@ -10,34 +10,11 @@ interface RestTimerProps {
   onSkip: () => void;
 }
 
-function playCompletionBeep() {
-  try {
-    const AudioContextClass =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext;
-    const audioContext = new AudioContextClass();
-
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.frequency.value = 880;
-    oscillator.type = "sine";
-
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(
-      0.001,
-      audioContext.currentTime + 0.5
-    );
-
-    oscillator.start();
-    oscillator.stop(audioContext.currentTime + 0.5);
-  } catch (err) {
-    console.error("Failed to play completion beep:", err);
-  }
+function playCompletionSound() {
+  const audio = new Audio("/sounds/rest-timer.mp3");
+  audio.play().catch((err) => {
+    console.error("Failed to play rest timer sound:", err);
+  });
 }
 
 function formatTime(totalSeconds: number): string {
@@ -74,7 +51,7 @@ export function RestTimer({
     if (secondsLeft <= 0) {
       if (!hasFiredCompletionRef.current) {
         hasFiredCompletionRef.current = true;
-        playCompletionBeep();
+        playCompletionSound();
         setShowFlash(true);
 
         const flashTimeout = setTimeout(() => {
@@ -103,6 +80,8 @@ export function RestTimer({
   );
   const circumference = 2 * Math.PI * 15.9155;
   const strokeDashoffset = circumference * (1 - percentage / 100);
+  const primaryTextClass = showFlash ? "text-white" : "text-text-primary";
+  const secondaryTextClass = showFlash ? "text-white/80" : "text-text-secondary";
 
   return (
     <section
@@ -119,67 +98,66 @@ export function RestTimer({
         />
       </div>
 
-      <div className="flex items-center gap-[12px] pt-[4px]">
-        <div className="relative flex h-[48px] w-[48px] shrink-0 items-center justify-center">
-          <svg className="h-[48px] w-[48px] -rotate-90" viewBox="0 0 36 36">
-            <path
-              d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
-              fill="none"
-              stroke="#E9E7ED"
-              strokeWidth="3.5"
+      <div className="flex items-center justify-between gap-[12px] pt-[4px]">
+        <div className="flex min-w-0 items-center gap-[12px]">
+          <div className="relative flex h-[48px] w-[48px] shrink-0 items-center justify-center">
+            <svg className="h-[48px] w-[48px] -rotate-90" viewBox="0 0 36 36">
+              <path
+                d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                fill="none"
+                stroke="#E9E7ED"
+                strokeWidth="3.5"
+              />
+              <path
+                d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
+                fill="none"
+                stroke="#FF9F0A"
+                strokeWidth="3.5"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className="transition-all duration-1000 ease-linear"
+              />
+            </svg>
+            <Timer
+              size={18}
+              strokeWidth={2}
+              className={`absolute ${showFlash ? "text-white" : "text-accent-alert"}`}
             />
-            <path
-              d="M18 2.0845a15.9155 15.9155 0 0 1 0 31.831a15.9155 15.9155 0 0 1 0-31.831"
-              fill="none"
-              stroke="#FF9F0A"
-              strokeWidth="3.5"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              className="transition-all duration-1000 ease-linear"
-            />
-          </svg>
-          <Timer
-            size={18}
-            strokeWidth={2}
-            className={showFlash ? "absolute text-white" : "absolute text-accent-alert"}
-          />
-        </div>
+          </div>
 
-        <div className="min-w-0">
-          <p
-            className={`font-mono text-numeric-timer leading-none ${
-              showFlash ? "text-white" : "text-text-primary"
-            }`}
-          >
-            {formatTime(secondsLeft)}
-          </p>
-          <p
-            className={`mt-[4px] truncate text-numeric-caption ${
-              showFlash ? "text-white/80" : "text-text-secondary"
-            }`}
-          >
+          <p className={`min-w-0 truncate text-label-primary ${secondaryTextClass}`}>
             Rest interval active
           </p>
         </div>
-      </div>
 
-      <div className="mt-[12px] flex items-center gap-[8px]">
-        <button
-          type="button"
-          onClick={() => setSecondsLeft((previousSeconds) => previousSeconds + 30)}
-          className="min-h-[36px] rounded-full bg-surface-container-high px-[12px] font-mono text-numeric-caption font-semibold text-text-primary transition-colors hover:bg-surface-container"
-        >
-          +30s
-        </button>
+        <div className="flex shrink-0 flex-col items-end">
+          <p
+            className={`whitespace-nowrap font-mono text-[32px] font-bold leading-none tabular-nums ${primaryTextClass}`}
+          >
+            {formatTime(secondsLeft)}
+          </p>
 
-        <button
-          type="button"
-          onClick={onSkip}
-          className="min-h-[36px] rounded-full bg-surface-container px-[12px] text-label-primary font-semibold text-text-secondary transition-colors hover:text-text-primary"
-        >
-          Skip
-        </button>
+          <div className="mt-[8px] flex items-center justify-end gap-[8px]">
+            <button
+              type="button"
+              onClick={() =>
+                setSecondsLeft((previousSeconds) => previousSeconds + 30)
+              }
+              className="min-h-[36px] rounded-full bg-surface-container-high px-[12px] font-mono text-numeric-caption font-semibold text-text-primary transition-colors hover:bg-surface-container"
+            >
+              +30s
+            </button>
+
+            <button
+              type="button"
+              onClick={onSkip}
+              className="min-h-[36px] rounded-full bg-surface-container px-[12px] text-label-primary font-semibold text-text-secondary transition-colors hover:text-text-primary"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -25,13 +25,6 @@ import { Plus } from "lucide-react";
 interface RoutineDayItem {
   id: string;
   order: number;
-  plannedSets: number | null;
-  plannedReps: number | null;
-  plannedWeightKg: number | null;
-  plannedDurationMin: number | null;
-  plannedDistanceKm: number | null;
-  plannedInclinePct: number | null;
-  plannedSpeedKmh: number | null;
   exercise: {
     id: string;
     name: string;
@@ -66,8 +59,6 @@ export default function RoutineDayBuilderPage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -116,145 +107,99 @@ export default function RoutineDayBuilderPage() {
   }, [id, titleDraft, day]);
 
   const sensors = useSensors(
-  useSensor(PointerSensor),
-  useSensor(KeyboardSensor, {
-    coordinateGetter: sortableKeyboardCoordinates,
-  })
-);
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-const handleItemUpdate = useCallback(
-  (itemId: string, fields: Partial<RoutineDayItem>) => {
-    if (!day) return;
-    setDay({
-      ...day,
-      items: day.items.map((item) =>
-        item.id === itemId ? { ...item, ...fields } : item
-      ),
-    });
-  },
-  [day]
-);
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
 
-const handleDragEnd = useCallback(
-  async (event: DragEndEvent) => {
-    const { active, over } = event;
+      if (!over || active.id === over.id || !day) return;
 
-    if (!over || active.id === over.id || !day) return;
+      const oldIndex = day.items.findIndex((item) => item.id === active.id);
+      const newIndex = day.items.findIndex((item) => item.id === over.id);
 
-    const oldIndex = day.items.findIndex((item) => item.id === active.id);
-    const newIndex = day.items.findIndex((item) => item.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return;
 
-    if (oldIndex === -1 || newIndex === -1) return;
+      const reordered = arrayMove(day.items, oldIndex, newIndex).map(
+        (item, index) => ({ ...item, order: index })
+      );
 
-    const reordered = arrayMove(day.items, oldIndex, newIndex).map(
-      (item, index) => ({ ...item, order: index })
-    );
+      setDay({ ...day, items: reordered });
 
-    setDay({ ...day, items: reordered });
+      try {
+        const res = await fetch("/api/routine-day-items/reorder", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: reordered.map((item) => ({ id: item.id, order: item.order })),
+          }),
+        });
 
-    try {
-      const res = await fetch("/api/routine-day-items/reorder", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: reordered.map((item) => ({ id: item.id, order: item.order })),
-        }),
-      });
+        if (!res.ok) throw new Error("Failed to save new order");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
+    },
+    [day]
+  );
 
-      if (!res.ok) throw new Error("Failed to save new order");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    }
-  },
-  [day]
-);
+  const handleSelectExercise = useCallback(
+    async (exercise: Exercise) => {
+      if (!day) return;
 
-const handleSelectExercise = useCallback(
-  async (exercise: Exercise) => {
-    if (!day) return;
+      try {
+        const res = await fetch("/api/routine-day-items", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            routineDayId: day.id,
+            exerciseId: exercise.id,
+          }),
+        });
 
-    try {
-      const res = await fetch("/api/routine-day-items", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          routineDayId: day.id,
-          exerciseId: exercise.id,
-        }),
-      });
+        if (!res.ok) throw new Error("Failed to add exercise");
 
-      if (!res.ok) throw new Error("Failed to add exercise");
+        const newItem: RoutineDayItem = await res.json();
 
-      const newItem: RoutineDayItem = await res.json();
+        setDay({
+          ...day,
+          items: [...day.items, newItem],
+        });
+        setIsSheetOpen(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
+    },
+    [day]
+  );
 
-      setDay({
-        ...day,
-        items: [...day.items, newItem],
-      });
-      setIsSheetOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    }
-  },
-  [day]
-);
+  const handleDeleteItem = useCallback(
+    async (itemId: string) => {
+      if (!day) return;
 
-const handleDeleteItem = useCallback(
-  async (itemId: string) => {
-    if (!day) return;
+      try {
+        const res = await fetch("/api/routine-day-items", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: itemId }),
+        });
 
-    try {
-      const res = await fetch("/api/routine-day-items", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: itemId }),
-      });
+        if (!res.ok) throw new Error("Failed to remove exercise");
 
-      if (!res.ok) throw new Error("Failed to remove exercise");
-
-      setDay({
-        ...day,
-        items: day.items.filter((item) => item.id !== itemId),
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    }
-  },
-  [day]
-);
-
-const handleSave = useCallback(async () => {
-  if (!day) return;
-
-  setIsSaving(true);
-  setSaveError(null);
-
-  try {
-    const res = await fetch("/api/routine-day-items/planned-targets", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: day.items.map((item) => ({
-          id: item.id,
-          plannedSets: item.plannedSets,
-          plannedReps: item.plannedReps,
-          plannedWeightKg: item.plannedWeightKg,
-          plannedDurationMin: item.plannedDurationMin,
-          plannedDistanceKm: item.plannedDistanceKm,
-          plannedInclinePct: item.plannedInclinePct,
-          plannedSpeedKmh: item.plannedSpeedKmh,
-        })),
-      }),
-    });
-
-    if (!res.ok) throw new Error("Failed to save planned targets");
-  } catch (err) {
-    setSaveError(err instanceof Error ? err.message : "Something went wrong");
-  } finally {
-    setIsSaving(false);
-  }
-}, [day]);
-
+        setDay({
+          ...day,
+          items: day.items.filter((item) => item.id !== itemId),
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+      }
+    },
+    [day]
+  );
 
   if (isLoading) {
     return <div className="p-[16px] text-label-primary text-text-secondary">Loading...</div>;
@@ -354,7 +299,6 @@ const handleSave = useCallback(async () => {
         <RoutineDayItemRow
           key={item.id}
           item={item}
-          onUpdate={handleItemUpdate}
           onDelete={handleDeleteItem}
         />
       ))}
@@ -375,20 +319,6 @@ const handleSave = useCallback(async () => {
   onClose={() => setIsSheetOpen(false)}
   onSelect={handleSelectExercise}
 />
-
-<div className="fixed inset-x-0 bottom-0 z-50 border-t border-divider bg-surface/95 px-[16px] pb-[16px] pt-[12px] backdrop-blur-xl">
-  {saveError && (
-    <p className="mb-[8px] text-center text-label-primary text-tag-cardio">{saveError}</p>
-  )}
-  <button
-    type="button"
-    onClick={handleSave}
-    disabled={isSaving}
-    className="mx-auto flex h-[50px] w-full max-w-[688px] items-center justify-center rounded-full bg-accent-action text-headline-sm font-semibold text-white transition-opacity hover:opacity-85 disabled:opacity-50"
-  >
-    {isSaving ? "Saving..." : "Save"}
-  </button>
-</div>
       </main>
     </div>
   );

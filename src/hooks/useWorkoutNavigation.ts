@@ -8,15 +8,10 @@ export function useWorkoutNavigation(
 ) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completedCount, setCompletedCount] = useState(initialCompletedSetCount);
-  const [requiredCount, setRequiredCount] = useState(0);
 
-  const resetProgressForExercise = useCallback(
-    (required: number, completed = 0) => {
-      setRequiredCount(required);
-      setCompletedCount(completed);
-    },
-    []
-  );
+  const resetProgressForExercise = useCallback((completed = 0) => {
+    setCompletedCount(completed);
+  }, []);
 
   const registerSetCompleted = useCallback(() => {
     setCompletedCount((prev) => prev + 1);
@@ -26,8 +21,7 @@ export function useWorkoutNavigation(
     setCurrentIndex(Math.max(0, Math.min(index, totalExercises - 1)));
   }, [totalExercises]);
 
-  const isCurrentExerciseComplete =
-    requiredCount > 0 && completedCount >= requiredCount;
+  const isCurrentExerciseComplete = completedCount > 0;
 
   const isLastExercise = currentIndex >= totalExercises - 1;
 

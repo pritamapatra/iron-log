@@ -65,12 +65,13 @@ model RoutineDayItem {
 }
 
 model WorkoutSession {
-  id            String     @id @default(cuid())
-  routineDayId  String
-  startedAt     DateTime   @default(now())
-  endedAt       DateTime?
-  routineDay    RoutineDay @relation(fields: [routineDayId], references: [id])
-  setLogs       SetLog[]
+  id                           String     @id @default(cuid())
+  routineDayId                 String
+  startedAt                    DateTime   @default(now())
+  endedAt                      DateTime?
+  waterReminderIntervalMinutes Int?
+  routineDay                   RoutineDay @relation(fields: [routineDayId], references: [id])
+  setLogs                      SetLog[]
 
   @@map("workout_sessions")
 }

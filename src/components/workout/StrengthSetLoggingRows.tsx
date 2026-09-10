@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 
 interface SetRowState {
   weightKg: number | null;
@@ -21,9 +21,7 @@ interface StrengthSetLoggingRowsProps {
   workoutSessionId: string;
   routineDayItemId: string;
   exerciseId: string;
-  plannedSets: number;
-  plannedWeightKg: number | null;
-  plannedReps: number | null;
+  workoutStartedAt: string | null;
   persistedSetLogs?: PersistedStrengthSetLog[];
   onSetCompleted?: () => void;
   onSetLogged?: (setLog: PersistedStrengthSetLog) => void;
@@ -33,27 +31,20 @@ export function StrengthSetLoggingRows({
   workoutSessionId,
   routineDayItemId,
   exerciseId,
-  plannedSets,
-  plannedWeightKg,
-  plannedReps,
+  workoutStartedAt,
   persistedSetLogs = [],
   onSetCompleted,
   onSetLogged,
 }: StrengthSetLoggingRowsProps) {
-  const totalSets = plannedSets > 0 ? plannedSets : 1;
-
-  const [rows, setRows] = useState<SetRowState[]>(
-    Array.from({ length: totalSets }, (_, index) => {
-      const persisted = persistedSetLogs.find(
-        (setLog) => setLog.setNumber === index + 1
-      );
-
-      return {
-        weightKg: persisted?.actualWeightKg ?? plannedWeightKg,
-        reps: persisted?.actualReps ?? plannedReps,
-        isCompleted: Boolean(persisted),
-      };
-    })
+  const [rows, setRows] = useState<SetRowState[]>(() =>
+    persistedSetLogs
+      .slice()
+      .sort((a, b) => (a.setNumber ?? 0) - (b.setNumber ?? 0))
+      .map((persisted) => ({
+        weightKg: persisted.actualWeightKg,
+        reps: persisted.actualReps,
+        isCompleted: true,
+      }))
   );
 
   const updateRow = (index: number, fields: Partial<SetRowState>) => {
@@ -62,9 +53,18 @@ export function StrengthSetLoggingRows({
     );
   };
 
+  const addSet = () => {
+    setRows((prev) => [...prev, { weightKg: null, reps: null, isCompleted: false }]);
+  };
+
   const handleComplete = async (index: number) => {
     const row = rows[index];
     if (row.isCompleted) return;
+
+    if (row.weightKg === null || row.reps === null) {
+      window.alert("Enter the values");
+      return;
+    }
 
     try {
       const res = await fetch("/api/set-logs", {
@@ -95,6 +95,15 @@ export function StrengthSetLoggingRows({
   const inputClasses =
     "h-[44px] w-full rounded-control border border-divider bg-surface px-[12px] text-right font-mono text-numeric-data text-text-primary outline-none focus:border-[1.5px] focus:border-text-primary disabled:bg-surface-container-low disabled:text-text-secondary";
 
+  const workoutDateLabel = workoutStartedAt
+    ? new Intl.DateTimeFormat(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(workoutStartedAt))
+    : null;
+
   return (
     <section className="overflow-hidden rounded-[16px] border border-black/[0.04] bg-surface shadow-level-1">
       <div className="flex items-center justify-between gap-[12px] border-b border-divider px-[16px] py-[16px]">
@@ -103,42 +112,32 @@ export function StrengthSetLoggingRows({
             Log your sets
           </h3>
           <p className="mt-[4px] text-label-primary text-text-secondary">
-            Enter your actual weight and reps
+            {workoutDateLabel
+              ? `${workoutDateLabel} · Enter your actual weight and reps`
+              : "Enter your actual weight and reps"}
           </p>
         </div>
         <span className="shrink-0 rounded-full bg-tag-strength/10 px-[10px] py-[4px] font-mono text-numeric-caption text-tag-strength">
-          {totalSets} sets
+          {rows.length} {rows.length === 1 ? "set" : "sets"}
         </span>
       </div>
 
-      <div className="flex items-center justify-between gap-[12px] border-b border-divider px-[16px] py-[16px]">
-        <div>
-          <h3 className="text-headline-sm font-semibold text-text-primary">
-            Log your sets
-          </h3>
-          <p className="mt-[4px] text-label-primary text-text-secondary">
-            Enter your actual weight and reps
-          </p>
+      {rows.length > 0 && (
+        <div className="grid grid-cols-[32px_minmax(0,1fr)_minmax(0,1fr)_28px] items-center gap-[8px] border-b border-divider px-[16px] py-[12px]">
+          <span className="text-label-caps font-semibold uppercase text-text-secondary">
+            Set
+          </span>
+          <span className="text-label-caps font-semibold uppercase text-text-secondary">
+            Weight
+          </span>
+          <span className="text-label-caps font-semibold uppercase text-text-secondary">
+            Reps
+          </span>
+          <span className="text-label-caps font-semibold uppercase text-text-secondary">
+            Done
+          </span>
         </div>
-        <span className="shrink-0 rounded-full bg-tag-strength/10 px-[10px] py-[4px] font-mono text-numeric-caption text-tag-strength">
-          {totalSets} sets
-        </span>
-      </div>
-
-      <div className="grid grid-cols-[32px_minmax(0,1fr)_minmax(0,1fr)_28px] items-center gap-[8px] border-b border-divider px-[16px] py-[12px]">
-        <span className="text-label-caps font-semibold uppercase text-text-secondary">
-          Set
-        </span>
-        <span className="text-label-caps font-semibold uppercase text-text-secondary">
-          Weight
-        </span>
-        <span className="text-label-caps font-semibold uppercase text-text-secondary">
-          Reps
-        </span>
-        <span className="text-label-caps font-semibold uppercase text-text-secondary">
-          Done
-        </span>
-      </div>
+      )}
 
       {rows.map((row, index) => (
         <div
@@ -200,6 +199,17 @@ export function StrengthSetLoggingRows({
           </button>
         </div>
       ))}
+
+      <div className="px-[16px] py-[16px]">
+        <button
+          type="button"
+          onClick={addSet}
+          className="flex h-[44px] w-full items-center justify-center gap-[6px] rounded-[10px] bg-surface-container-low text-[14px] font-semibold text-text-primary transition-colors active:bg-surface-container"
+        >
+          <Plus size={18} />
+          Add Set
+        </button>
+      </div>
     </section>
   );
 }

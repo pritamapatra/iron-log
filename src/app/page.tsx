@@ -6,6 +6,7 @@ import { StreakBadge } from "@/components/dashboard/StreakBadge";
 import { TodayRoutineCard } from "@/components/dashboard/TodayRoutineCard";
 import { AllRoutinesList } from "@/components/dashboard/AllRoutinesList";
 import { NewDayButton } from "@/components/dashboard/NewDayButton";
+import { WaterReminderSettings } from "@/components/dashboard/WaterReminderSettings";
 
 interface TodayRoutine {
   id: string;
@@ -119,6 +120,8 @@ export default function DashboardPage() {
   </div>
 
         <StreakBadge data={streak} />
+
+        <WaterReminderSettings />
 
         {hasNoRoutineDays ? (
           <p className="text-sm text-[#6E6E73]">

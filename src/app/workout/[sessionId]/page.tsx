@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Dumbbell, Target } from "lucide-react";
+import { ArrowLeft, Dumbbell } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import Badge from "@/components/Badge";
 import Button from "@/components/Button";
@@ -14,17 +14,10 @@ import { WaterReminder } from "@/components/workout/WaterReminder";
 import { useWorkoutNavigation } from "@/hooks/useWorkoutNavigation";
 import { useEndWorkout } from "@/hooks/useEndWorkout";
 
-const REST_DURATION_SECONDS = 90;
+const REST_DURATION_SECONDS = 60;
 
 interface RoutineDayItem {
   id: string;
-  plannedSets: number | null;
-  plannedReps: number | null;
-  plannedWeightKg: number | null;
-  plannedDurationMin: number | null;
-  plannedDistanceKm: number | null;
-  plannedInclinePct: number | null;
-  plannedSpeedKmh: number | null;
   exercise: {
     id: string;
     name: string;
@@ -44,6 +37,8 @@ interface PersistedSetLog {
 
 interface WorkoutSessionData {
   routineDayId: string;
+  startedAt: string;
+  waterReminderIntervalMinutes: number | null;
   setLogs: PersistedSetLog[];
 }
 
@@ -53,42 +48,6 @@ interface RoutineDay {
   items: RoutineDayItem[];
 }
 
-function getTargetSummary(item: RoutineDayItem): string | null {
-  if (item.exercise.type === "STRENGTH") {
-    const parts: string[] = [];
-
-    if (item.plannedSets !== null && item.plannedReps !== null) {
-      parts.push(`${item.plannedSets} × ${item.plannedReps} reps`);
-    }
-
-    if (item.plannedWeightKg !== null) {
-      parts.push(`@ ${item.plannedWeightKg} kg`);
-    }
-
-    return parts.length > 0 ? parts.join(" ") : null;
-  }
-
-  const parts: string[] = [];
-
-  if (item.plannedDurationMin !== null) {
-    parts.push(`${item.plannedDurationMin} min`);
-  }
-
-  if (item.plannedDistanceKm !== null) {
-    parts.push(`${item.plannedDistanceKm} km`);
-  }
-
-  if (item.plannedInclinePct !== null) {
-    parts.push(`${item.plannedInclinePct}% incline`);
-  }
-
-  if (item.plannedSpeedKmh !== null) {
-    parts.push(`${item.plannedSpeedKmh} km/h`);
-  }
-
-  return parts.length > 0 ? parts.join(" · ") : null;
-}
-
 export default function ActiveWorkoutPage() {
   const params = useParams();
   const router = useRouter();
@@ -96,6 +55,9 @@ export default function ActiveWorkoutPage() {
 
   const [routineDay, setRoutineDay] = useState<RoutineDay | null>(null);
   const [persistedSetLogs, setPersistedSetLogs] = useState<PersistedSetLog[]>([]);
+  const [waterReminderIntervalMinutes, setWaterReminderIntervalMinutes] =
+    useState<number | null>(null);
+  const [workoutStartedAt, setWorkoutStartedAt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRestActive, setIsRestActive] = useState(false);
@@ -116,6 +78,10 @@ export default function ActiveWorkoutPage() {
         if (!isCancelled) {
           setRoutineDay(dayData);
           setPersistedSetLogs(session.setLogs);
+          setWaterReminderIntervalMinutes(
+            session.waterReminderIntervalMinutes
+          );
+          setWorkoutStartedAt(session.startedAt);
         }
       } catch (err) {
         if (!isCancelled) {
@@ -175,33 +141,11 @@ export default function ActiveWorkoutPage() {
   };
 
   useEffect(() => {
-    if (items.length === 0) return;
-
-    const firstIncompleteIndex = items.findIndex((item) => {
-      const completedSetCount = getSetLogsForItem(item).length;
-
-      const requiredSetCount =
-        item.exercise.type === "STRENGTH" ? item.plannedSets ?? 1 : 1;
-
-      return completedSetCount < requiredSetCount;
-    });
-
-    setCurrentExerciseIndex(
-      firstIncompleteIndex === -1 ? items.length - 1 : firstIncompleteIndex
-    );
-  }, [items, persistedSetLogs, setCurrentExerciseIndex]);
-
-  useEffect(() => {
     if (!currentItem) return;
-
-    const required =
-      currentItem.exercise.type === "STRENGTH"
-        ? currentItem.plannedSets ?? 1
-        : 1;
 
     const completedSetCount = getSetLogsForItem(currentItem).length;
 
-    resetProgressForExercise(required, completedSetCount);
+    resetProgressForExercise(completedSetCount);
   }, [currentIndex, currentItem, persistedSetLogs, resetProgressForExercise]);
 
   const handleSetLogged = (setLog: PersistedSetLog) => {
@@ -235,7 +179,6 @@ export default function ActiveWorkoutPage() {
   }
 
   const completionPercent = Math.round((completedExercises / items.length) * 100);
-  const targetSummary = getTargetSummary(currentItem);
   const currentExerciseSetLogs = getSetLogsForItem(currentItem);
 
   return (
@@ -316,23 +259,11 @@ export default function ActiveWorkoutPage() {
                   : "Cardio"}
               </Badge>
             </div>
-
-            {targetSummary && (
-              <div className="flex items-center gap-[8px] text-label-primary text-text-secondary">
-                <Target size={16} strokeWidth={2} className="shrink-0" />
-                <span className="font-medium text-text-primary">Target:</span>
-                <span className="font-mono text-numeric-caption">
-                  {targetSummary}
-                </span>
-                <span className="text-text-secondary">·</span>
-                <span>Rest: {REST_DURATION_SECONDS}s</span>
-              </div>
-            )}
           </section>
 
           <ExerciseVideoPlayer youtubeVideoId={currentItem.exercise.youtubeVideoId} />
 
-          <WaterReminder />
+          <WaterReminder intervalMinutes={waterReminderIntervalMinutes} />
 
           {currentItem.exercise.type === "STRENGTH" ? (
             <StrengthSetLoggingRows
@@ -340,10 +271,8 @@ export default function ActiveWorkoutPage() {
               workoutSessionId={sessionId}
               routineDayItemId={currentItem.id}
               exerciseId={currentItem.exercise.id}
-              plannedSets={currentItem.plannedSets ?? 1}
-              plannedWeightKg={currentItem.plannedWeightKg}
-              plannedReps={currentItem.plannedReps}
               persistedSetLogs={currentExerciseSetLogs}
+              workoutStartedAt={workoutStartedAt}
               onSetLogged={handleSetLogged}
               onSetCompleted={handleSetCompleted}
             />
@@ -352,10 +281,6 @@ export default function ActiveWorkoutPage() {
               key={currentItem.id}
               workoutSessionId={sessionId}
               exerciseId={currentItem.exercise.id}
-              plannedDurationMin={currentItem.plannedDurationMin}
-              plannedDistanceKm={currentItem.plannedDistanceKm}
-              plannedInclinePct={currentItem.plannedInclinePct}
-              plannedSpeedKmh={currentItem.plannedSpeedKmh}
               onCompleted={handleSetCompleted}
             />
           )}
@@ -373,7 +298,13 @@ export default function ActiveWorkoutPage() {
 
           <Button
             variant="primary"
-            onClick={goToNextExercise}
+            onClick={() => {
+              if (isRestActive) {
+                window.alert("Wait for timer to 0:00 or click Skip to move to the next exercise");
+                return;
+              }
+              goToNextExercise();
+            }}
             disabled={!isCurrentExerciseComplete || isLastExercise}
             className="flex min-h-[52px] w-full items-center justify-center text-headline-sm"
           >
@@ -398,7 +329,6 @@ export default function ActiveWorkoutPage() {
               <Button variant="secondary" onClick={cancelEndWorkout}>
                 Cancel
               </Button>
-                        
 
               <Button
                 variant="primary"
